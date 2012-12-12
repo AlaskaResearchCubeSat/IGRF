@@ -10,7 +10,7 @@ int extrapsh(double date,double dte1,int nmax1,int nmax2,int gh);
 //Interpolate between models
 int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh);
 //Calculates field components from models
-int shval3(int igdgc,double flat,double flon,double elev,int nmax,VEC *dest);
+int shval3(double flat,double flon,double elev,int nmax,VEC *dest);
 
 #endif
 

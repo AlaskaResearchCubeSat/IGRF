@@ -1,6 +1,6 @@
 
 LDFLAGS+=-lm -ggdb3
-CFLAGS+=-Wall -ggdb3
+CFLAGS+= -Wextra -Wall -ggdb3
 
 
 OBJECTS=igrf.o igrf-tst.o

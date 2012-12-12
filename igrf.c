@@ -227,9 +227,6 @@ double dtemp,ftemp,htemp,itemp;
 /*                                                                          */
 /*   idot       Scalar Double          Rate of change of i (arc-min/yr).    */
 /*                                                                          */
-/*   igdgc      Integer                Flag for geodetic or geocentric      */
-/*                                     coordinate choice.                   */
-/*                                                                          */
 /*   inbuff     Char a of MAXINBUF     Input buffer.                        */
 /*                                                                          */
 /*   irec_pos   Integer array of MAXMOD Record counter for header           */
@@ -683,12 +680,9 @@ int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh){
 /*     models.                                                              */
 /*                                                                          */
 /*     Input:                                                               */
-/*           igdgc     - indicates coordinate system used; set equal        */
-/*                       to 1 if geodetic, 2 if geocentric                  */
 /*           latitude  - north latitude, in degrees                         */
 /*           longitude - east longitude, in degrees                         */
-/*           elev      - WGS84 altitude above ellipsoid (igdgc=1), or       */
-/*                       radial distance from earth's center (igdgc=2)      */
+/*           elev      - radial distance from earth's center                */
 /*           nmax      - maximum degree and order of coefficients           */
 /*           iext      - external coefficients flag (=0 if none)            */
 /*           ext1,2,3  - the three 1st-degree external coefficients         */
@@ -714,19 +708,17 @@ int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh){
 /****************************************************************************/
 
 
-int shval3(int igdgc,double flat,double flon,double elev,int nmax,VEC *dest)
+int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
 {
   double earths_radius = 6371.2;
   double dtr = 0.01745329;
   double slat;
   double clat;
   double ratio;
-  double aa, bb, cc, dd;
+  double aa, bb, cc;
   double sd;
   double cd;
   double r;
-  double a2;
-  double b2;
   double rr;
   double fm,fn;
   double sl[14];
@@ -739,8 +731,6 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,VEC *dest)
   double argument;
   double power;
   double x,y,z;
-  a2 = 40680631.59;            /* WGS84 */
-  b2 = 40408299.98;            /* WGS84 */
   ios = 0;
   r = elev;
   argument = flat * dtr;
@@ -776,21 +766,6 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,VEC *dest)
   n = 0;
   m = 1;
   npq = (nmax * (nmax + 3)) / 2;
-  if (igdgc == 1)
-    {
-      aa = a2 * clat * clat;
-      bb = b2 * slat * slat;
-      cc = aa + bb;
-      argument = cc;
-      dd = sqrt( argument );
-      argument = elev * (elev + 2.0 * dd) + (a2 * aa + b2 * bb) / cc;
-      r = sqrt( argument );
-      cd = (elev + dd) / r;
-      sd = (a2 - b2) / dd * slat * clat / r;
-      aa = slat;
-      slat = slat * cd - clat * sd;
-      clat = clat * cd + aa * sd;
-    }
   ratio = earths_radius / r;
   argument = 3.0;
   aa = sqrt( argument );

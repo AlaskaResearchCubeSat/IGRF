@@ -14,7 +14,7 @@ int main(int argc,char **argv){
         return 1;
     }
     extrapsh(2013,2010,13,8,3);
-    shval3(2,64.9261111,-147.4958333,6371.2,13,&field);
+    shval3(64.9261111,-147.4958333,6371.2,13,&field);
     printf("x = %f\ny = %f\nz = %f\n",field.c.x,field.c.y,field.c.z);
     return 0;
 }
