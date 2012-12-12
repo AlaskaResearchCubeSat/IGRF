@@ -140,8 +140,6 @@
 double gh1[MAXCOEFF];
 double gh2[MAXCOEFF];
 double gha[MAXCOEFF];              /* Geomag global variables */
-double d=0,f=0,h=0,i=0;
-double dtemp,ftemp,htemp,itemp;
 
 
 
@@ -181,11 +179,6 @@ double dtemp,ftemp,htemp,itemp;
 /*    Name         Type                    Usage                            */
 /* ------------------------------------------------------------------------ */
 /*                                                                          */
-/*   a2,b2      Scalar Double          Squares of semi-major and semi-minor */
-/*                                     axes of the reference spheroid used  */
-/*                                     for transforming between geodetic or */
-/*                                     geocentric coordinates.              */
-/*                                                                          */
 /*   minalt     Double array of MAXMOD Minimum height of model.             */
 /*                                                                          */
 /*   altmin     Double                 Minimum height of selected model.    */
@@ -194,15 +187,7 @@ double dtemp,ftemp,htemp,itemp;
 /*                                                                          */
 /*   maxalt     Double                 Maximum height of selected model.    */
 /*                                                                          */
-/*   d          Scalar Double          Declination of the field from the    */
-/*                                     geographic north (deg).              */
-/*                                                                          */
 /*   sdate      Scalar Double          start date inputted                  */
-/*                                                                          */
-/*   ddot       Scalar Double          annual rate of change of decl.       */
-/*                                     (arc-min/yr)                         */
-/*                                                                          */
-/*   alt        Scalar Double          altitude above WGS84 Ellipsoid       */
 /*                                                                          */
 /*   epoch      Double array of MAXMOD epoch of model.                      */
 /*                                                                          */
@@ -222,17 +207,7 @@ double dtemp,ftemp,htemp,itemp;
 /*                                                                          */
 /*   ghb        Double array           Coefficients of rate of change model.*/
 /*                                                                          */
-/*   i          Scalar Double          Inclination (deg).                   */
-/*                                                                          */
-/*   idot       Scalar Double          Rate of change of i (arc-min/yr).    */
-/*                                                                          */
-/*   inbuff     Char a of MAXINBUF     Input buffer.                        */
-/*                                                                          */
 /*   irec_pos   Integer array of MAXMOD Record counter for header           */
-/*                                                                          */
-/*   stream  Integer                   File handles for an opened file.     */
-/*                                                                          */
-/*   fileline   Integer                Current line in file (for errors)    */
 /*                                                                          */
 /*   max1       Integer array of MAXMOD Main field coefficient.             */
 /*                                                                          */
@@ -246,97 +221,7 @@ double dtemp,ftemp,htemp,itemp;
 /*                                                                          */
 /*   maxyr      Double                  Max year of all models              */
 /*                                                                          */
-/*   yrmax      Double array of MAXMOD  Max year of model.                  */
-/*                                                                          */
-/*   yrmin      Double array of MAXMOD  Min year of model.                  */
-/*                                                                          */
 /****************************************************************************/
-
-
-/****************************************************************************/
-/*                                                                          */
-/*                       Subroutine degrees_to_decimal                      */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*     Converts degrees,minutes, seconds to decimal degrees.                */
-/*                                                                          */
-/*     Input:                                                               */
-/*            degrees - Integer degrees                                     */
-/*            minutes - Integer minutes                                     */
-/*            seconds - Integer seconds                                     */
-/*                                                                          */
-/*     Output:                                                              */
-/*            decimal - degrees in decimal degrees                          */
-/*                                                                          */
-/*     C                                                                    */
-/*           C. H. Shaffer                                                  */
-/*           Lockheed Missiles and Space Company, Sunnyvale CA              */
-/*           August 12, 1988                                                */
-/*                                                                          */
-/****************************************************************************/
-
-double degrees_to_decimal(int degrees,int minutes,int seconds)
-{
-  double deg;
-  double min;
-  double sec;
-  double decimal;
-  
-  deg = degrees;
-  min = minutes/60.0;
-  sec = seconds/3600.0;
-  
-  decimal = fabs(sec) + fabs(min) + fabs(deg);
-  
-  if (deg < 0) {
-    decimal = -decimal;
-  } else if (deg == 0){
-    if (min < 0){
-      decimal = -decimal;
-    } else if (min == 0){
-      if (sec<0){
-        decimal = -decimal;
-      }
-    }
-  }
-  
-  return(decimal);
-}
-
-/****************************************************************************/
-/*                                                                          */
-/*                           Subroutine julday                              */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*     Computes the decimal day of year from month, day, year.              */
-/*     Supplied by Daniel Bergstrom                                         */
-/*                                                                          */
-/* References:                                                              */
-/*                                                                          */
-/* 1. Nachum Dershowitz and Edward M. Reingold, Calendrical Calculations,   */
-/*    Cambridge University Press, 3rd edition, ISBN 978-0-521-88540-9.      */
-/*                                                                          */
-/* 2. Claus Tøndering, Frequently Asked Questions about Calendars,          */
-/*    Version 2.9, http://www.tondering.dk/claus/calendar.html              */
-/*                                                                          */
-/****************************************************************************/
-
-double julday(month, day, year)
-     int month;
-     int day;
-     int year;
-{
-  int days[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-
-  int leap_year = (((year % 4) == 0) &&
-                   (((year % 100) != 0) || ((year % 400) == 0)));
-
-  double day_in_year = (days[month - 1] + day + (month > 2 ? leap_year : 0));
-
-  return ((double)year + (day_in_year / (365.0 + leap_year)));
-}
 
 
 /****************************************************************************/
@@ -483,40 +368,37 @@ int extrapsh(double date,double dte1,int nmax1,int nmax2){
   int   k, l;
   int   ii;
   double factor;
-  
+  //# of years to extrapolate
   factor = date - dte1;
-  if (nmax1 == nmax2)
-    {
+  //check for equal degree
+  if (nmax1 == nmax2){
       k =  nmax1 * (nmax1 + 2);
       nmax = nmax1;
-    }
-  else
-    {
-      if (nmax1 > nmax2)
-        {
+  }else{
+      //check if refrence is bigger
+      if (nmax1 > nmax2){
           k = nmax2 * (nmax2 + 2);
           l = nmax1 * (nmax1 + 2);
-              for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  gha[ii] = gh1[ii];
-                }
+          //copy extra elements unchanged
+          for ( ii = k + 1; ii <= l; ++ii){
+              gha[ii] = gh1[ii];
+          }
+          //maximum degree of model
           nmax = nmax1;
-        }
-      else
-        {
+      }else{
           k = nmax1 * (nmax1 + 2);
           l = nmax2 * (nmax2 + 2);
-            for ( ii = k + 1; ii <= l; ++ii){
-                  gha[ii] = factor * gh2[ii];
-                }
+          //put in rate of change for extra elements?
+          for(ii=k+1;ii<=l;++ii){
+            gha[ii] = factor * gh2[ii];
+          }
           nmax = nmax2;
         }
     }
-      for ( ii = 1; ii <= k; ++ii)
-        {
-          gha[ii] = gh1[ii] + factor * gh2[ii];
-        }
-  return(nmax);
+    for ( ii = 1; ii <= k; ++ii){
+        gha[ii] = gh1[ii] + factor * gh2[ii];
+    }
+    return(nmax);
 }
 
 /****************************************************************************/
@@ -654,11 +536,9 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   double q[119];
   int ii,j,k,l,m,n;
   int npq;
-  int ios;
   double argument;
   double power;
   double x,y,z;
-  ios = 0;
   r = elev;
   argument = flat * dtr;
   slat = sin( argument );
@@ -769,8 +649,10 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
     aa = x;
     x = x * cd + z * sd;
     z = z * cd - aa * sd;
+    //set destination values
     dest->c.x=x;
     dest->c.y=y;
     dest->c.z=z;
-  return(ios);
+    //always returns zero
+    return 0;
 }
