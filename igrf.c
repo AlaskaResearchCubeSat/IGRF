@@ -140,7 +140,6 @@
 double gh1[MAXCOEFF];
 double gh2[MAXCOEFF];
 double gha[MAXCOEFF];              /* Geomag global variables */
-double ghb[MAXCOEFF];
 double d=0,f=0,h=0,i=0;
 double dtemp,ftemp,htemp,itemp;
 
@@ -479,8 +478,7 @@ int getshc(const char *file,int iflag,long int strec,int nmax_of_gh,int gh){
 /****************************************************************************/
 
 
-int extrapsh(double date,double dte1,int nmax1,int nmax2,int gh)
-{
+int extrapsh(double date,double dte1,int nmax1,int nmax2){
   int   nmax;
   int   k, l;
   int   ii;
@@ -498,60 +496,26 @@ int extrapsh(double date,double dte1,int nmax1,int nmax2,int gh)
         {
           k = nmax2 * (nmax2 + 2);
           l = nmax1 * (nmax1 + 2);
-          switch(gh)
-            {
-            case 3:  for ( ii = k + 1; ii <= l; ++ii)
+              for ( ii = k + 1; ii <= l; ++ii)
                 {
                   gha[ii] = gh1[ii];
                 }
-              break;
-            case 4:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  ghb[ii] = gh1[ii];
-                }
-              break;
-            default: printf("\nError in subroutine extrapsh");
-              break;
-            }
           nmax = nmax1;
         }
       else
         {
           k = nmax1 * (nmax1 + 2);
           l = nmax2 * (nmax2 + 2);
-          switch(gh)
-            {
-            case 3:  for ( ii = k + 1; ii <= l; ++ii)
-                {
+            for ( ii = k + 1; ii <= l; ++ii){
                   gha[ii] = factor * gh2[ii];
                 }
-              break;
-            case 4:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  ghb[ii] = factor * gh2[ii];
-                }
-              break;
-            default: printf("\nError in subroutine extrapsh");
-              break;
-            }
           nmax = nmax2;
         }
     }
-  switch(gh)
-    {
-    case 3:  for ( ii = 1; ii <= k; ++ii)
+      for ( ii = 1; ii <= k; ++ii)
         {
           gha[ii] = gh1[ii] + factor * gh2[ii];
         }
-      break;
-    case 4:  for ( ii = 1; ii <= k; ++ii)
-        {
-          ghb[ii] = gh1[ii] + factor * gh2[ii];
-        }
-      break;
-    default: printf("\nError in subroutine extrapsh");
-      break;
-    }
   return(nmax);
 }
 
@@ -591,7 +555,7 @@ int extrapsh(double date,double dte1,int nmax1,int nmax2,int gh)
 /****************************************************************************/
 
 
-int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh){
+int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2){
   int   nmax;
   int   k, l;
   int   ii;
@@ -605,63 +569,26 @@ int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh){
     }
   else
     {
-      if (nmax1 > nmax2)
-        {
+      if (nmax1 > nmax2){
           k = nmax2 * (nmax2 + 2);
           l = nmax1 * (nmax1 + 2);
-          switch(gh)
-            {
-            case 3:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  gha[ii] = gh1[ii] + factor * (-gh1[ii]);
-                }
-              break;
-            case 4:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  ghb[ii] = gh1[ii] + factor * (-gh1[ii]);
-                }
-              break;
-            default: printf("\nError in subroutine extrapsh");
-              break;
-            }
+          for ( ii = k + 1; ii <= l; ++ii){
+            gha[ii] = gh1[ii] + factor * (-gh1[ii]);
+          }
           nmax = nmax1;
         }
       else
         {
           k = nmax1 * (nmax1 + 2);
           l = nmax2 * (nmax2 + 2);
-          switch(gh)
-            {
-            case 3:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  gha[ii] = factor * gh2[ii];
-                }
-              break;
-            case 4:  for ( ii = k + 1; ii <= l; ++ii)
-                {
-                  ghb[ii] = factor * gh2[ii];
-                }
-              break;
-            default: printf("\nError in subroutine extrapsh");
-              break;
-            }
+          for ( ii = k + 1; ii <= l; ++ii){
+            gha[ii] = factor * gh2[ii];
+          }
           nmax = nmax2;
         }
     }
-  switch(gh)
-    {
-    case 3:  for ( ii = 1; ii <= k; ++ii)
-        {
-          gha[ii] = gh1[ii] + factor * (gh2[ii] - gh1[ii]);
-        }
-      break;
-    case 4:  for ( ii = 1; ii <= k; ++ii)
-        {
-          ghb[ii] = gh1[ii] + factor * (gh2[ii] - gh1[ii]);
-        }
-      break;
-    default: printf("\nError in subroutine extrapsh");
-      break;
+    for ( ii = 1; ii <= k; ++ii){
+      gha[ii] = gh1[ii] + factor * (gh2[ii] - gh1[ii]);
     }
   return(nmax);
 }
@@ -735,8 +662,7 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   r = elev;
   argument = flat * dtr;
   slat = sin( argument );
-  if ((90.0 - flat) < 0.001)
-    {
+  if ((90.0 - flat) < 0.001){
       aa = 89.999;            /*  300 ft. from North pole  */
     }
   else
