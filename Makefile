@@ -1,5 +1,6 @@
 
-LDFLAGS+=-lm
+LDFLAGS+=-lm -ggdb3
+CFLAGS+=-Wall -ggdb3
 
 
 OBJECTS=igrf.o igrf-tst.o
@@ -11,6 +12,11 @@ tags: $(wildcard *.c) $(wildcard *.h)
 
 igrf-tst: $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -g -o $@
+
+.PHONY:
+clean:
+	rm -vf igrf-tst
+	rm -vf $(OBJECTS)
 
 
 
