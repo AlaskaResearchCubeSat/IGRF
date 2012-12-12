@@ -107,6 +107,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h> 
+#include "vector.h"
 
 #define NaN log(-1.0)
 #define FT2KM (1.0/0.0003048)
@@ -119,9 +120,6 @@
 #define SEEK_END 2
 #endif
 
-#define IEXT 0
-#define FALSE 0
-#define TRUE 1                  /* constants */
 #define RECL 81
 
 #define MAXINBUFF RECL+14
@@ -137,10 +135,6 @@
 #define PATH MAXREAD
 /** Max path and filename length **/
 
-#define EXT_COEFF1 (double)0
-#define EXT_COEFF2 (double)0
-#define EXT_COEFF3 (double)0
-
 #define MAXDEG 13
 #define MAXCOEFF (MAXDEG*(MAXDEG+2)+1) /* index starts with 1!, (from old Fortran?) */
 double gh1[MAXCOEFF];
@@ -149,8 +143,6 @@ double gha[MAXCOEFF];              /* Geomag global variables */
 double ghb[MAXCOEFF];
 double d=0,f=0,h=0,i=0;
 double dtemp,ftemp,htemp,itemp;
-double x=0,y=0,z=0;
-double xtemp,ytemp,ztemp;
 
 
 
@@ -722,7 +714,7 @@ int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2,int gh){
 /****************************************************************************/
 
 
-int shval3(int igdgc,double flat,double flon,double elev,int nmax,int gh)
+int shval3(int igdgc,double flat,double flon,double elev,int nmax,VEC *dest)
 {
   double earths_radius = 6371.2;
   double dtr = 0.01745329;
@@ -746,6 +738,7 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,int gh)
   int ios;
   double argument;
   double power;
+  double x,y,z;
   a2 = 40680631.59;            /* WGS84 */
   b2 = 40408299.98;            /* WGS84 */
   ios = 0;
@@ -772,19 +765,11 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,int gh)
   argument = flon * dtr;
   sl[1] = sin( argument );
   cl[1] = cos( argument );
-  switch(gh)
-    {
-    case 3:  x = 0;
-      y = 0;
-      z = 0;
-      break;
-    case 4:  xtemp = 0;
-      ytemp = 0;
-      ztemp = 0;
-      break;
-    default: printf("Error in subroutine shval3 at line #%i\n",__LINE__);
-      break;
-    }
+  //initialize quardinats
+  x = 0;
+  y = 0;
+  z = 0;
+
   sd = 0.0;
   cd = 1.0;
   l = 1;
@@ -854,35 +839,16 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,int gh)
               q[k] = cc * (slat * q[ii] - clat/fn * p[ii]) - bb * q[j];
             }
         }
-      switch(gh)
-        {
-        case 3:  aa = rr * gha[l];
-          break;
-        case 4:  aa = rr * ghb[l];
-          break;
-        default: printf("Error in subroutine shval3 at line #%i\n",__LINE__);
-          break;
-        }
+        aa = rr * gha[l];
       if (m == 0)
         {
-          switch(gh)
-            {
-            case 3:  x = x + aa * q[k];
-              z = z - aa * p[k];
-              break;
-            case 4:  xtemp = xtemp + aa * q[k];
-              ztemp = ztemp - aa * p[k];
-              break;
-            default: printf("Error in subroutine shval3 at line #%i\n",__LINE__);
-              break;
-            }
+          x = x + aa * q[k];
+          z = z - aa * p[k];
           l = l + 1;
         }
       else
         {
-          switch(gh)
-            {
-            case 3:  bb = rr * gha[l+1];
+              bb = rr * gha[l+1];
               cc = aa * cl[m] + bb * sl[m];
               x = x + cc * q[k];
               z = z - cc * p[k];
@@ -896,167 +862,14 @@ int shval3(int igdgc,double flat,double flon,double elev,int nmax,int gh)
                   y = y + (aa * sl[m] - bb * cl[m]) * q[k] * slat;
                 }
               l = l + 2;
-              break;
-            case 4:  bb = rr * ghb[l+1];
-              cc = aa * cl[m] + bb * sl[m];
-              xtemp = xtemp + cc * q[k];
-              ztemp = ztemp - cc * p[k];
-              if (clat > 0)
-                {
-                  ytemp = ytemp + (aa * sl[m] - bb * cl[m]) *
-                    fm * p[k]/((fn + 1.0) * clat);
-                }
-              else
-                {
-                  ytemp = ytemp + (aa * sl[m] - bb * cl[m]) *
-                    q[k] * slat;
-                }
-              l = l + 2;
-              break;
-            default: printf("Error in subroutine shval3 at line #%i\n",__LINE__);
-              break;
-            }
         }
       m = m + 1;
     }
-  switch(gh)
-    {
-    case 3:   aa = x;
-		x = x * cd + z * sd;
-		z = z * cd - aa * sd;
-		break;
-    case 4:   aa = xtemp;
-		xtemp = xtemp * cd + ztemp * sd;
-		ztemp = ztemp * cd - aa * sd;
-		break;
-    default:  printf("Error in subroutine shval3 at line #%i\n",__LINE__);
-		break;
-    }
-  return(ios);
-}
-
-
-/****************************************************************************/
-/*                                                                          */
-/*                           Subroutine dihf                                */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*     Computes the geomagnetic d, i, h, and f from x, y, and z.            */
-/*                                                                          */
-/*     Input:                                                               */
-/*           x  - northward component                                       */
-/*           y  - eastward component                                        */
-/*           z  - vertically-downward component                             */
-/*                                                                          */
-/*     Output:                                                              */
-/*           d  - declination                                               */
-/*           i  - inclination                                               */
-/*           h  - horizontal intensity                                      */
-/*           f  - total intensity                                           */
-/*                                                                          */
-/*     FORTRAN                                                              */
-/*           A. Zunde                                                       */
-/*           USGS, MS 964, box 25046 Federal Center, Denver, CO.  80225     */
-/*                                                                          */
-/*     C                                                                    */
-/*           C. H. Shaffer                                                  */
-/*           Lockheed Missiles and Space Company, Sunnyvale CA              */
-/*           August 22, 1988                                                */
-/*                                                                          */
-/****************************************************************************/
-
-int dihf(int gh) {
-  int ios;
-  int j;
-  double sn;
-  double h2;
-  double hpx;
-  double argument, argument2;
-  
-  ios = gh;
-  sn = 0.0001;
-  
-  switch(gh)
-    {
-    case 3:   for (j = 1; j <= 1; ++j)
-        {
-          h2 = x*x + y*y;
-          argument = h2;
-          h = sqrt(argument);       /* calculate horizontal intensity */
-          argument = h2 + z*z;
-          f = sqrt(argument);      /* calculate total intensity */
-          if (f < sn)
-            {
-              d = NaN;        /* If d and i cannot be determined, */
-              i = NaN;        /*       set equal to NaN         */
-            }
-          else
-            {
-              argument = z;
-              argument2 = h;
-              i = atan2(argument,argument2);
-              if (h < sn)
-                {
-                  d = NaN;
-                }
-              else
-                {
-                  hpx = h + x;
-                  if (hpx < sn)
-                    {
-                      d = PI;
-                    }
-                  else
-                    {
-                      argument = y;
-                      argument2 = hpx;
-                      d = 2.0 * atan2(argument,argument2);
-                    }
-                }
-            }
-        }
-		break;
-    case 4:   for (j = 1; j <= 1; ++j)
-        {
-          h2 = xtemp*xtemp + ytemp*ytemp;
-          argument = h2;
-          htemp = sqrt(argument);
-          argument = h2 + ztemp*ztemp;
-          ftemp = sqrt(argument);
-          if (ftemp < sn)
-            {
-              dtemp = NaN;    /* If d and i cannot be determined, */
-              itemp = NaN;    /*       set equal to 999.0         */
-            }
-          else
-            {
-              argument = ztemp;
-              argument2 = htemp;
-              itemp = atan2(argument,argument2);
-              if (htemp < sn)
-                {
-                  dtemp = NaN;
-                }
-              else
-                {
-                  hpx = htemp + xtemp;
-                  if (hpx < sn)
-                    {
-                      dtemp = PI;
-                    }
-                  else
-                    {
-                      argument = ytemp;
-                      argument2 = hpx;
-                      dtemp = 2.0 * atan2(argument,argument2);
-                    }
-                }
-            }
-        }
-		break;
-    default:  printf("\nError in subroutine dihf");
-		break;
-    }
+    aa = x;
+    x = x * cd + z * sd;
+    z = z * cd - aa * sd;
+    dest->c.x=x;
+    dest->c.y=y;
+    dest->c.z=z;
   return(ios);
 }
