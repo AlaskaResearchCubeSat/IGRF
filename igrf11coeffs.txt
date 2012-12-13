@@ -1,4 +1,7 @@
-g/h n m 1900.0 1905.0 1910.0 1915.0 1920.0 1925.0 1930.0 1935.0 1940.0 1945.0 1950.0 1955.0 1960.0 1965.0 1970.0 1975.0 1980.0 1985.0 1990.0 1995.0   2000.0    2005.0   2010.0     SV
+# 11th Generation International Geomagnetic Reference Field Schmidt semi-normalised spherical harmonic coefficients, degree n=1,13
+# in units nanoTesla for IGRF and definitive DGRF main-field models (degree n=1,8 nanoTesla/year for secular variation (SV))
+         IGRF   IGRF   IGRF   IGRF   IGRF   IGRF   IGRF   IGRF   IGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF   DGRF     DGRF      DGRF     IGRF    SV
+g/h n m 1900.0 1905.0 1910.0 1915.0 1920.0 1925.0 1930.0 1935.0 1940.0 1945.0 1950.0 1955.0 1960.0 1965.0 1970.0 1975.0 1980.0 1985.0 1990.0 1995.0   2000.0    2005.0   2010.0 2010-15
 g  1  0 -31543 -31464 -31354 -31212 -31060 -30926 -30805 -30715 -30654 -30594 -30554 -30500 -30421 -30334 -30220 -30100 -29992 -29873 -29775 -29692 -29619.4 -29554.63 -29496.5   11.4
 g  1  1  -2298  -2298  -2297  -2306  -2317  -2318  -2316  -2306  -2292  -2285  -2250  -2215  -2169  -2119  -2068  -2013  -1956  -1905  -1848  -1784  -1728.2  -1669.05  -1585.9   16.7
 h  1  1   5922   5909   5898   5875   5845   5817   5808   5812   5821   5810   5815   5820   5791   5776   5737   5675   5604   5500   5406   5306   5186.1   5077.99   4945.1  -28.8

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import argparse
 
 def writeArray(fp,name,arr):
     fp.write("const double "+name+'['+str(len(arr))+']={')
@@ -11,15 +12,20 @@ def writeArray(fp,name,arr):
             fp.write('{0: f},'.format(e))
     fp.write('};\n')
 
+p=argparse.ArgumentParser(description='Extract spherical harmonic coefficients from IGRF file an write to a C file.')
+p.add_argument('infile',type=argparse.FileType('r'))
+p.add_argument('-o','--outfile',type=argparse.FileType('r'),dest='outfile',default=sys.stdout)
 
-fname='igrf11coeffs.txt'
+args=p.parse_args()
 
-fp=open(fname,'r')
+inf=args.infile
+otf=args.outfile
+
 
 have_header=False
 
 while not have_header:
-    l=fp.readline()
+    l=inf.readline()
     if l.startswith('#'):
         continue
     h=l.split()
@@ -33,7 +39,7 @@ ghIdx=svIdx-1
 gh=[]
 sv=[]
 
-for line in fp:
+for line in inf:
     line=line.split()
     g_h=line[0]
     n=line[1]
@@ -42,8 +48,10 @@ for line in fp:
     sv+=[float(line[svIdx])]
     gh+=[float(line[ghIdx])]
 
-fp.close()
+inf.close()
 
-writeArray(sys.stdout,'gh',gh)
-writeArray(sys.stdout,'sv',sv)
+writeArray(otf,'gh',gh)
+writeArray(otf,'sv',sv)
+
+otf.close()
 
