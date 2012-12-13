@@ -195,27 +195,21 @@ int extrapsh(double date){
 /****************************************************************************/
 
 
-int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
-{
-  double earths_radius = 6371.2;
+int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
+  const double earths_radius = 6371.2;
   double slat;
   double clat;
   double ratio;
   double aa, bb, cc;
-  double sd;
-  double cd;
-  double r;
   double rr;
   double fm,fn;
   double sl[MAXCOEFF];
   double cl[MAXCOEFF];
-  double p[119];
-  double q[119];
+  double p[MAXDEG*(MAXDEG+3)/2];
+  double q[MAXDEG*(MAXDEG+3)/2];
   int i,j,k,l,m,n;
   int npq;
-  double argument;
   double x,y,z;
-  r = elev;
   //calculate sin and cos of latitude
   slat = sin(flat);
   clat = cos(flat);
@@ -232,28 +226,26 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   y = 0;
   z = 0;
 
-  sd = 0.0;
-  cd = 1.0;
   l = 1;
   n = 0;
   m = 1;
   npq = (nmax * (nmax + 3)) / 2;
   //calculate ratio of earths radius to radius
-  ratio = earths_radius / r;
+  ratio = earths_radius / elev;
 
   aa = sqrt(3.0);
 
   //set initial values of p
-  p[1] = 2.0 * slat;
-  p[2] = 2.0 * clat;
-  p[3] = 4.5 * slat * slat - 1.5;
-  p[4] = 3.0 * aa * clat * slat;
+  p[0] = 2.0 * slat;
+  p[1] = 2.0 * clat;
+  p[2] = 4.5 * slat * slat - 1.5;
+  p[3] = 3.0 * aa * clat * slat;
 
   //Set initial values of q
-  q[1] = -clat;
-  q[2] = slat;
-  q[3] = -3.0 * clat * slat;
-  q[4] = aa * (slat * slat - clat * clat);
+  q[0] = -clat;
+  q[1] = slat;
+  q[2] = -3.0 * clat * slat;
+  q[3] = aa * (slat * slat - clat * clat);
 
   for( k = 1; k <= npq; ++k){
       if (n < m){
@@ -267,49 +259,45 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
           if (m == n){
               aa = sqrt(1.0 - 0.5/fm);
               j = k - n - 1;
-              p[k] = (1.0 + 1.0/fm) * aa * clat * p[j];
-              q[k] = aa * (clat * q[j] + slat/fm * p[j]);
+              p[k-1] = (1.0 + 1.0/fm) * aa * clat * p[j-1];
+              q[k-1] = aa * (clat * q[j-1] + slat/fm * p[j-1]);
               sl[m-1] = sl[m-2] * cl[0] + cl[m-2] * sl[0];
               cl[m-1] = cl[m-2] * cl[0] - sl[m-2] * sl[0];
           }else{
               aa = sqrt(fn*fn - fm*fm);
-              argument = ((fn - 1.0)*(fn-1.0)) - (fm * fm);
-              bb = sqrt( argument )/aa;
+              bb = sqrt(((fn - 1.0)*(fn-1.0)) - (fm * fm))/aa;
               cc = (2.0 * fn - 1.0)/aa;
               i = k - n;
               j = k - 2 * n + 1;
-              p[k] = (fn + 1.0) * (cc * slat/fn * p[i] - bb/(fn - 1.0) * p[j]);
-              q[k] = cc * (slat * q[i] - clat/fn * p[i]) - bb * q[j];
+              p[k-1] = (fn + 1.0) * (cc * slat/fn * p[i-1] - bb/(fn - 1.0) * p[j-1]);
+              q[k-1] = cc * (slat * q[i-1] - clat/fn * p[i-1]) - bb * q[j-1];
             }
         }
         aa = rr * mag_coeff[l-1];
 
       if (m == 0){
-          x = x + aa * q[k];
-          z = z - aa * p[k];
+          x = x + aa * q[k-1];
+          z = z - aa * p[k-1];
           l = l + 1;
       }else{
               bb = rr * mag_coeff[l];
               cc = aa * cl[m-1] + bb * sl[m-1];
-              x = x + cc * q[k];
-              z = z - cc * p[k];
+              x = x + cc * q[k-1];
+              z = z - cc * p[k-1];
               if (clat > 0){
-                  y = y + (aa * sl[m-1] - bb * cl[m-1]) *fm * p[k]/((fn + 1.0) * clat);
+                  y = y + (aa * sl[m-1] - bb * cl[m-1]) *fm * p[k-1]/((fn + 1.0) * clat);
               }else{
-                  y = y + (aa * sl[m-1] - bb * cl[m-1]) * q[k] * slat;
+                  y = y + (aa * sl[m-1] - bb * cl[m-1]) * q[k-1] * slat;
               }
               l = l + 2;
       }
       m = m + 1;
     }
 
-    aa = x;
-    x = x * cd + z * sd;
-    z = z * cd - aa * sd;
-    //set destination values
     dest->c.x=x;
     dest->c.y=y;
     dest->c.z=z;
+    //set destination values
     //always returns zero
     return 0;
 }

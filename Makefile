@@ -20,7 +20,9 @@ igrfCoeffs.c: extract-cords.py $(COEFF)
 
 .PHONY:
 test:	igrf-tst
-	@echo -e 'Old:\nx = 11443.719582 \ny = 4207.010590\nz = 55433.999964\nNew:';./igrf-tst
+	#@echo -e 'Old:\nx = 11443.719582 \ny = 4207.010590\nz = 55433.999964\nNew:';./igrf-tst
+	@echo -e 'Old:\nx = 11443.716524\ny = 4207.008353\nz = 55434.001180\nNew:';./igrf-tst
+
 
 .PHONY:
 clean:
