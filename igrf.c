@@ -50,70 +50,15 @@
 /*                                          Stefan Maus Aug-24-2004         */
 /*                                                                          */
 /****************************************************************************/
-/*                                                                          */
-/*      This program calculates the geomagnetic field values from           */
-/*      a spherical harmonic model.  Inputs required by the user are:       */
-/*      a spherical harmonic model data file, coordinate preference,        */
-/*      altitude, date/range-step, latitude, and longitude.                 */
-/*                                                                          */
-/*         Spherical Harmonic                                               */
-/*         Model Data File       :  Name of the data file containing the    */
-/*                                  spherical harmonic coefficients of      */
-/*                                  the chosen model.  The model and path   */
-/*                                  must be less than PATH chars.           */
-/*                                                                          */
-/*         Coordinate Preference :  Geodetic (WGS84 latitude and altitude   */
-/*                                  above ellipsoid (WGS84),                */
-/*                                  or geocentric (spherical, altitude      */
-/*                                  measured from the center of the Earth). */
-/*                                                                          */
-/*         Altitude              :  Altitude above ellipsoid (WGS84). The   */
-/*                                  program asks for altitude above mean    */
-/*                                  sea level, because the altitude above   */
-/*                                  ellipsoid is not known to most users.   */
-/*                                  The resulting error is very small and   */
-/*                                  negligible for most practical purposes. */
-/*                                  If geocentric coordinate preference is  */
-/*                                  used, then the altitude must be in the  */
-/*                                  range of 6370.20 km - 6971.20 km as     */
-/*                                  measured from the center of the earth.  */
-/*                                  Enter altitude in kilometers, meters,   */
-/*                                  or feet                                 */
-/*                                                                          */
-/*         Date                  :  Date, in decimal years, for which to    */
-/*                                  calculate the values of the magnetic    */
-/*                                  field.  The date must be within the     */
-/*                                  limits of the model chosen.             */
-/*                                                                          */
-/*         Latitude              :  Entered in decimal degrees in the       */
-/*                                  form xxx.xxx.  Positive for northern    */
-/*                                  hemisphere, negative for the southern   */
-/*                                  hemisphere.                             */
-/*                                                                          */
-/*         Longitude             :  Entered in decimal degrees in the       */
-/*                                  form xxx.xxx.  Positive for eastern     */
-/*                                  hemisphere, negative for the western    */
-/*                                  hemisphere.                             */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*      Subroutines called :  degrees_to_decimal,julday,getshc,interpsh,    */
-/*                            extrapsh,shval3,dihf,safegets                 */
-/*                                                                          */
-/****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>            
-#include <string.h>
-#include <ctype.h>
-#include <math.h> 
+#include <math.h>
+#include <float.h>
 #include "vector.h"
 #include "igrfCoeffs.h"
 
 #define NaN log(-1.0)
 #define FT2KM (1.0/0.0003048)
 #define PI 3.141592654
-#define RAD2DEG (180.0/PI)
 
 #ifndef SEEK_SET
 #define SEEK_SET 0
@@ -225,8 +170,8 @@ int extrapsh(double date){
 /*     models.                                                              */
 /*                                                                          */
 /*     Input:                                                               */
-/*           latitude  - north latitude, in degrees                         */
-/*           longitude - east longitude, in degrees                         */
+/*           latitude  - north latitude, in radians                         */
+/*           longitude - east longitude, in radians                         */
 /*           elev      - radial distance from earth's center                */
 /*           nmax      - maximum degree and order of coefficients           */
 /*                                                                          */
@@ -253,7 +198,6 @@ int extrapsh(double date){
 int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
 {
   double earths_radius = 6371.2;
-  double dtr = 0.01745329;
   double slat;
   double clat;
   double ratio;
@@ -272,20 +216,17 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   double argument;
   double x,y,z;
   r = elev;
-  argument = flat * dtr;
-  slat = sin(argument);
-  if ((90.0 - flat) < 0.001){
-    flat = 89.999;            /*  300 ft. from North pole  */
-  }else{
-    if((90.0 + flat) < 0.001){
-      flat = -89.999;        /*  300 ft. from South pole  */
-    }
+  //calculate sin and cos of latitude
+  slat = sin(flat);
+  clat = cos(flat);
+  //prevent divide by zero
+  if(clat==0){
+    clat=DBL_EPSILON;
   }
-  argument = flat * dtr;
-  clat = cos( argument );
-  argument = flon * dtr;
-  sl[0] = sin( argument );
-  cl[0] = cos( argument );
+
+  //calculate sin and cos of longitude
+  sl[0] = sin(flon);
+  cl[0] = cos(flon);
   //initialize coordinates
   x = 0;
   y = 0;
