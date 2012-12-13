@@ -16,7 +16,15 @@ fname='igrf11coeffs.txt'
 
 fp=open(fname,'r')
 
-h=fp.readline().split()
+have_header=False
+
+while not have_header:
+    l=fp.readline()
+    if l.startswith('#'):
+        continue
+    h=l.split()
+    if h[0]=='g/h':
+        have_header=True
 
 #initialize coordinate array
 
