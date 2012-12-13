@@ -108,6 +108,7 @@
 #include <ctype.h>
 #include <math.h> 
 #include "vector.h"
+#include "igrfCoeffs.h"
 
 #define NaN log(-1.0)
 #define FT2KM (1.0/0.0003048)
@@ -136,10 +137,8 @@
 /** Max path and filename length **/
 
 #define MAXDEG 13
-#define MAXCOEFF (MAXDEG*(MAXDEG+2)+1) /* index starts with 1!, (from old Fortran?) */
-double gh1[MAXCOEFF];
-double gh2[MAXCOEFF];
-double gha[MAXCOEFF];              /* Geomag global variables */
+#define MAXCOEFF (MAXDEG*(MAXDEG+2)+1)  // index starts with 1!, (from old Fortran?)
+double gha[MAXCOEFF];                   //Computed coefficients
 
 
 
@@ -223,110 +222,6 @@ double gha[MAXCOEFF];              /* Geomag global variables */
 /*                                                                          */
 /****************************************************************************/
 
-
-/****************************************************************************/
-/*                                                                          */
-/*                           Subroutine getshc                              */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*     Reads spherical harmonic coefficients from the specified             */
-/*     model into an array.                                                 */
-/*                                                                          */
-/*     Input:                                                               */
-/*           stream     - Logical unit number                               */
-/*           iflag      - Flag for SV equal to ) or not equal to 0          */
-/*                        for designated read statements                    */
-/*           strec      - Starting record number to read from model         */
-/*           nmax_of_gh - Maximum degree and order of model                 */
-/*                                                                          */
-/*     Output:                                                              */
-/*           gh1 or 2   - Schmidt quasi-normal internal spherical           */
-/*                        harmonic coefficients                             */
-/*                                                                          */
-/*     FORTRAN                                                              */
-/*           Bill Flanagan                                                  */
-/*           NOAA CORPS, DESDIS, NGDC, 325 Broadway, Boulder CO.  80301     */
-/*                                                                          */
-/*     C                                                                    */
-/*           C. H. Shaffer                                                  */
-/*           Lockheed Missiles and Space Company, Sunnyvale CA              */
-/*           August 15, 1988                                                */
-/*                                                                          */
-/****************************************************************************/
-
-
-int getshc(const char *file,int iflag,long int strec,int nmax_of_gh,int gh){
-  char  inbuff[MAXINBUFF];
-  char irat[9];
-  int ii,m,n,mm,nn;
-  int ios;
-  int line_num;
-  double g,hh;
-  double trash;
-    FILE *stream = NULL;
-  
-  stream = fopen(file, "rt");
-  if (stream == NULL){
-      printf("\nError on opening file %s", file);
-      return -1;
-  }else{
-      ii = 0;
-      ios = 0;
-      fseek(stream,strec,SEEK_SET);
-      for ( nn = 1; nn <= nmax_of_gh; ++nn)
-        {
-          for (mm = 0; mm <= nn; ++mm)
-            {
-              if (iflag == 1)
-                {
-                  fgets(inbuff, MAXREAD, stream);
-                  sscanf(inbuff, "%d%d%lg%lg%lg%lg%s%d",
-                         &n, &m, &g, &hh, &trash, &trash, irat, &line_num);
-                }
-              else
-                {
-                  fgets(inbuff, MAXREAD, stream);
-                  sscanf(inbuff, "%d%d%lg%lg%lg%lg%s%d",
-                         &n, &m, &trash, &trash, &g, &hh, irat, &line_num);
-                }
-              if ((nn != n) || (mm != m))
-                {
-                  ios = -2;
-                  fclose(stream);
-                  return(ios);
-                }
-              ii = ii + 1;
-              switch(gh)
-                {
-                case 1:  gh1[ii] = g;
-                  break;
-                case 2:  gh2[ii] = g;
-                  break;
-                default: printf("\nError in subroutine getshc");
-                  break;
-                }
-              if (m != 0)
-                {
-                  ii = ii+ 1;
-                  switch(gh)
-                    {
-                    case 1:  gh1[ii] = hh;
-                      break;
-                    case 2:  gh2[ii] = hh;
-                      break;
-                    default: printf("\nError in subroutine getshc");
-                      break;
-                    }
-                }
-            }
-        }
-    }
-  fclose(stream);
-  return(ios);
-}
-
-
 /****************************************************************************/
 /*                                                                          */
 /*                           Subroutine extrapsh                            */
@@ -338,16 +233,16 @@ int getshc(const char *file,int iflag,long int strec,int nmax_of_gh,int gh){
 /*                                                                          */
 /*     Input:                                                               */
 /*           date     - date of resulting model (in decimal year)           */
-/*           dte1     - date of base model                                  */
-/*           nmax1    - maximum degree and order of base model              */
-/*           gh1      - Schmidt quasi-normal internal spherical             */
+/*          igrf_date - date of base model                                  */
+/*          igrf_ord  - maximum degree and order of base model              */
+/*        igrf_coeffs - Schmidt quasi-normal internal spherical             */
 /*                      harmonic coefficients of base model                 */
-/*           nmax2    - maximum degree and order of rate-of-change model    */
-/*           gh2      - Schmidt quasi-normal internal spherical             */
+/*           sv_ord   - maximum degree and order of rate-of-change model    */
+/*           igrf_sv  - Schmidt quasi-normal internal spherical             */
 /*                      harmonic coefficients of rate-of-change model       */
 /*                                                                          */
 /*     Output:                                                              */
-/*           gha or b - Schmidt quasi-normal internal spherical             */
+/*           gha    - Schmidt quasi-normal internal spherical               */
 /*                    harmonic coefficients                                 */
 /*           nmax   - maximum degree and order of resulting model           */
 /*                                                                          */
@@ -363,120 +258,43 @@ int getshc(const char *file,int iflag,long int strec,int nmax_of_gh,int gh){
 /****************************************************************************/
 
 
-int extrapsh(double date,double dte1,int nmax1,int nmax2){
+int extrapsh(double date){
   int   nmax;
   int   k, l;
-  int   ii;
+  int   i;
   double factor;
   //# of years to extrapolate
-  factor = date - dte1;
+  factor = date - igrf_date;
   //check for equal degree
-  if (nmax1 == nmax2){
-      k =  nmax1 * (nmax1 + 2);
-      nmax = nmax1;
+  if (igrf_ord == sv_ord){
+      k =  igrf_ord * (igrf_ord + 2);
+      nmax = igrf_ord;
   }else{
       //check if refrence is bigger
-      if (nmax1 > nmax2){
-          k = nmax2 * (nmax2 + 2);
-          l = nmax1 * (nmax1 + 2);
+      if (igrf_ord > sv_ord){
+          k = sv_ord * (sv_ord + 2);
+          l = igrf_ord * (igrf_ord + 2);
           //copy extra elements unchanged
-          for ( ii = k + 1; ii <= l; ++ii){
-              gha[ii] = gh1[ii];
+          for ( i = k + 1; i <= l; ++i){
+              gha[i] = igrf_coeffs[i];
           }
           //maximum degree of model
-          nmax = nmax1;
+          nmax = igrf_ord;
       }else{
-          k = nmax1 * (nmax1 + 2);
-          l = nmax2 * (nmax2 + 2);
+          k = igrf_ord * (igrf_ord + 2);
+          l = sv_ord * (sv_ord + 2);
           //put in rate of change for extra elements?
-          for(ii=k+1;ii<=l;++ii){
-            gha[ii] = factor * gh2[ii];
+          for(i=k+1;i<=l;++i){
+            gha[i] = factor * igrf_sv[i];
           }
-          nmax = nmax2;
+          nmax = sv_ord;
         }
     }
-    for ( ii = 1; ii <= k; ++ii){
-        gha[ii] = gh1[ii] + factor * gh2[ii];
+    for ( i = 1; i <= k; ++i){
+        gha[i] = igrf_coeffs[i] + factor * igrf_sv[i];
     }
     return(nmax);
 }
-
-/****************************************************************************/
-/*                                                                          */
-/*                           Subroutine interpsh                            */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*     Interpolates linearly, in time, between two spherical harmonic       */
-/*     models.                                                              */
-/*                                                                          */
-/*     Input:                                                               */
-/*           date     - date of resulting model (in decimal year)           */
-/*           dte1     - date of earlier model                               */
-/*           nmax1    - maximum degree and order of earlier model           */
-/*           gh1      - Schmidt quasi-normal internal spherical             */
-/*                      harmonic coefficients of earlier model              */
-/*           dte2     - date of later model                                 */
-/*           nmax2    - maximum degree and order of later model             */
-/*           gh2      - Schmidt quasi-normal internal spherical             */
-/*                      harmonic coefficients of internal model             */
-/*                                                                          */
-/*     Output:                                                              */
-/*           gha or b - coefficients of resulting model                     */
-/*           nmax     - maximum degree and order of resulting model         */
-/*                                                                          */
-/*     FORTRAN                                                              */
-/*           A. Zunde                                                       */
-/*           USGS, MS 964, box 25046 Federal Center, Denver, CO.  80225     */
-/*                                                                          */
-/*     C                                                                    */
-/*           C. H. Shaffer                                                  */
-/*           Lockheed Missiles and Space Company, Sunnyvale CA              */
-/*           August 17, 1988                                                */
-/*                                                                          */
-/****************************************************************************/
-
-
-int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2){
-  int   nmax;
-  int   k, l;
-  int   ii;
-  double factor;
-  
-  factor = (date - dte1) / (dte2 - dte1);
-  if (nmax1 == nmax2)
-    {
-      k =  nmax1 * (nmax1 + 2);
-      nmax = nmax1;
-    }
-  else
-    {
-      if (nmax1 > nmax2){
-          k = nmax2 * (nmax2 + 2);
-          l = nmax1 * (nmax1 + 2);
-          for ( ii = k + 1; ii <= l; ++ii){
-            gha[ii] = gh1[ii] + factor * (-gh1[ii]);
-          }
-          nmax = nmax1;
-        }
-      else
-        {
-          k = nmax1 * (nmax1 + 2);
-          l = nmax2 * (nmax2 + 2);
-          for ( ii = k + 1; ii <= l; ++ii){
-            gha[ii] = factor * gh2[ii];
-          }
-          nmax = nmax2;
-        }
-    }
-    for ( ii = 1; ii <= k; ++ii){
-      gha[ii] = gh1[ii] + factor * (gh2[ii] - gh1[ii]);
-    }
-  return(nmax);
-}
-
-
-
 
 
 /****************************************************************************/
@@ -494,8 +312,6 @@ int interpsh(double date,double dte1,int nmax1,double dte2,int nmax2){
 /*           elev      - radial distance from earth's center                */
 /*           nmax      - maximum degree and order of coefficients           */
 /*           iext      - external coefficients flag (=0 if none)            */
-/*           ext1,2,3  - the three 1st-degree external coefficients         */
-/*                       (not used if iext = 0)                             */
 /*                                                                          */
 /*     Output:                                                              */
 /*           x         - northward component                                */
