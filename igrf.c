@@ -137,90 +137,8 @@
 /** Max path and filename length **/
 
 #define MAXDEG 13
-#define MAXCOEFF (MAXDEG*(MAXDEG+2)+1)  // index starts with 1!, (from old Fortran?)
-double gha[MAXCOEFF];                   //Computed coefficients
-
-
-
-/****************************************************************************/
-/*                                                                          */
-/*                             Program Geomag                               */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*      This program, originally written in FORTRAN, was developed using    */
-/*      subroutines written by                                              */
-/*      A. Zunde                                                            */
-/*      USGS, MS 964, Box 25046 Federal Center, Denver, Co.  80225          */
-/*      and                                                                 */
-/*      S.R.C. Malin & D.R. Barraclough                                     */
-/*      Institute of Geological Sciences, United Kingdom.                   */
-/*                                                                          */
-/*      Translated                                                          */
-/*      into C by    : Craig H. Shaffer                                     */
-/*                     29 July, 1988                                        */
-/*                                                                          */
-/*      Rewritten by : David Owens                                          */
-/*                     For Susan McLean                                     */
-/*                                                                          */
-/*      Maintained by: Stefan Maus                                          */
-/*      Contact      : stefan.maus@noaa.gov                                 */
-/*                     National Geophysical Data Center                     */
-/*                     World Data Center-A for Solid Earth Geophysics       */
-/*                     NOAA, E/GC1, 325 Broadway,                           */
-/*                     Boulder, CO  80303                                   */
-/*                                                                          */
-/*                                                                          */
-/****************************************************************************/
-/*                                                                          */
-/*      Some variables used in this program                                 */
-/*                                                                          */
-/*    Name         Type                    Usage                            */
-/* ------------------------------------------------------------------------ */
-/*                                                                          */
-/*   minalt     Double array of MAXMOD Minimum height of model.             */
-/*                                                                          */
-/*   altmin     Double                 Minimum height of selected model.    */
-/*                                                                          */
-/*   altmax     Double array of MAXMOD Maximum height of model.             */
-/*                                                                          */
-/*   maxalt     Double                 Maximum height of selected model.    */
-/*                                                                          */
-/*   sdate      Scalar Double          start date inputted                  */
-/*                                                                          */
-/*   epoch      Double array of MAXMOD epoch of model.                      */
-/*                                                                          */
-/*   ext        Scalar Double          Three 1st-degree external coeff.     */
-/*                                                                          */
-/*   latitude   Scalar Double          Latitude.                            */
-/*                                                                          */
-/*   longitude  Scalar Double          Longitude.                           */
-/*                                                                          */
-/*   gh1        Double array           Schmidt quasi-normal internal        */
-/*                                     spherical harmonic coeff.            */
-/*                                                                          */
-/*   gh2        Double array           Schmidt quasi-normal internal        */
-/*                                     spherical harmonic coeff.            */
-/*                                                                          */
-/*   gha        Double array           Coefficients of resulting model.     */
-/*                                                                          */
-/*   ghb        Double array           Coefficients of rate of change model.*/
-/*                                                                          */
-/*   irec_pos   Integer array of MAXMOD Record counter for header           */
-/*                                                                          */
-/*   max1       Integer array of MAXMOD Main field coefficient.             */
-/*                                                                          */
-/*   max2       Integer array of MAXMOD Secular variation coefficient.      */
-/*                                                                          */
-/*   max3       Integer array of MAXMOD Acceleration coefficient.           */
-/*                                                                          */
-/*   mdfile     Character array of PATH  Model file name.                   */
-/*                                                                          */
-/*   minyr      Double                  Min year of all models              */
-/*                                                                          */
-/*   maxyr      Double                  Max year of all models              */
-/*                                                                          */
-/****************************************************************************/
+#define MAXCOEFF (MAXDEG*(MAXDEG+2))
+double mag_coeff[MAXCOEFF];                   //Computed coefficients
 
 /****************************************************************************/
 /*                                                                          */
@@ -242,7 +160,7 @@ double gha[MAXCOEFF];                   //Computed coefficients
 /*                      harmonic coefficients of rate-of-change model       */
 /*                                                                          */
 /*     Output:                                                              */
-/*           gha    - Schmidt quasi-normal internal spherical               */
+/*        mag_coeff - Schmidt quasi-normal internal spherical               */
 /*                    harmonic coefficients                                 */
 /*           nmax   - maximum degree and order of resulting model           */
 /*                                                                          */
@@ -270,13 +188,13 @@ int extrapsh(double date){
       k =  igrf_ord * (igrf_ord + 2);
       nmax = igrf_ord;
   }else{
-      //check if refrence is bigger
+      //check if reference is bigger
       if (igrf_ord > sv_ord){
           k = sv_ord * (sv_ord + 2);
           l = igrf_ord * (igrf_ord + 2);
           //copy extra elements unchanged
-          for ( i = k + 1; i <= l; ++i){
-              gha[i] = igrf_coeffs[i];
+          for ( i = k ; i < l; ++i){
+              mag_coeff[i] = igrf_coeffs[i];
           }
           //maximum degree of model
           nmax = igrf_ord;
@@ -284,16 +202,16 @@ int extrapsh(double date){
           k = igrf_ord * (igrf_ord + 2);
           l = sv_ord * (sv_ord + 2);
           //put in rate of change for extra elements?
-          for(i=k+1;i<=l;++i){
-            gha[i] = factor * igrf_sv[i];
+          for(i=k;i<l;++i){
+            mag_coeff[i] = factor * igrf_sv[i];
           }
           nmax = sv_ord;
         }
     }
-    for ( i = 1; i <= k; ++i){
-        gha[i] = igrf_coeffs[i] + factor * igrf_sv[i];
+    for ( i = 0; i < k; ++i){
+        mag_coeff[i] = igrf_coeffs[i] + factor * igrf_sv[i];
     }
-    return(nmax);
+    return nmax;
 }
 
 
@@ -311,7 +229,6 @@ int extrapsh(double date){
 /*           longitude - east longitude, in degrees                         */
 /*           elev      - radial distance from earth's center                */
 /*           nmax      - maximum degree and order of coefficients           */
-/*           iext      - external coefficients flag (=0 if none)            */
 /*                                                                          */
 /*     Output:                                                              */
 /*           x         - northward component                                */
@@ -346,38 +263,30 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   double r;
   double rr;
   double fm,fn;
-  double sl[14];
-  double cl[14];
+  double sl[MAXCOEFF];
+  double cl[MAXCOEFF];
   double p[119];
   double q[119];
-  int ii,j,k,l,m,n;
+  int i,j,k,l,m,n;
   int npq;
   double argument;
-  double power;
   double x,y,z;
   r = elev;
   argument = flat * dtr;
-  slat = sin( argument );
+  slat = sin(argument);
   if ((90.0 - flat) < 0.001){
-      aa = 89.999;            /*  300 ft. from North pole  */
+    flat = 89.999;            /*  300 ft. from North pole  */
+  }else{
+    if((90.0 + flat) < 0.001){
+      flat = -89.999;        /*  300 ft. from South pole  */
     }
-  else
-    {
-      if ((90.0 + flat) < 0.001)
-        {
-          aa = -89.999;        /*  300 ft. from South pole  */
-        }
-      else
-        {
-          aa = flat;
-        }
-    }
-  argument = aa * dtr;
+  }
+  argument = flat * dtr;
   clat = cos( argument );
   argument = flon * dtr;
-  sl[1] = sin( argument );
-  cl[1] = cos( argument );
-  //initialize quardinats
+  sl[0] = sin( argument );
+  cl[0] = cos( argument );
+  //initialize coordinates
   x = 0;
   y = 0;
   z = 0;
@@ -388,80 +297,71 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest)
   n = 0;
   m = 1;
   npq = (nmax * (nmax + 3)) / 2;
+  //calculate ratio of earths radius to radius
   ratio = earths_radius / r;
-  argument = 3.0;
-  aa = sqrt( argument );
+
+  aa = sqrt(3.0);
+
+  //set initial values of p
   p[1] = 2.0 * slat;
   p[2] = 2.0 * clat;
   p[3] = 4.5 * slat * slat - 1.5;
   p[4] = 3.0 * aa * clat * slat;
+
+  //Set initial values of q
   q[1] = -clat;
   q[2] = slat;
   q[3] = -3.0 * clat * slat;
   q[4] = aa * (slat * slat - clat * clat);
-  for ( k = 1; k <= npq; ++k)
-    {
-      if (n < m)
-        {
+
+  for( k = 1; k <= npq; ++k){
+      if (n < m){
           m = 0;
           n = n + 1;
-          argument = ratio;
-          power =  n + 2;
-          rr = pow(argument,power);
+          rr = pow(ratio,n+2);
           fn = n;
-        }
+      }
       fm = m;
-      if (k >= 5)
-        {
-          if (m == n)
-            {
-              argument = (1.0 - 0.5/fm);
-              aa = sqrt( argument );
+      if (k >= 5){
+          if (m == n){
+              aa = sqrt(1.0 - 0.5/fm);
               j = k - n - 1;
               p[k] = (1.0 + 1.0/fm) * aa * clat * p[j];
               q[k] = aa * (clat * q[j] + slat/fm * p[j]);
-              sl[m] = sl[m-1] * cl[1] + cl[m-1] * sl[1];
-              cl[m] = cl[m-1] * cl[1] - sl[m-1] * sl[1];
-            }
-          else
-            {
-              argument = fn*fn - fm*fm;
-              aa = sqrt( argument );
+              sl[m-1] = sl[m-2] * cl[0] + cl[m-2] * sl[0];
+              cl[m-1] = cl[m-2] * cl[0] - sl[m-2] * sl[0];
+          }else{
+              aa = sqrt(fn*fn - fm*fm);
               argument = ((fn - 1.0)*(fn-1.0)) - (fm * fm);
               bb = sqrt( argument )/aa;
               cc = (2.0 * fn - 1.0)/aa;
-              ii = k - n;
+              i = k - n;
               j = k - 2 * n + 1;
-              p[k] = (fn + 1.0) * (cc * slat/fn * p[ii] - bb/(fn - 1.0) * p[j]);
-              q[k] = cc * (slat * q[ii] - clat/fn * p[ii]) - bb * q[j];
+              p[k] = (fn + 1.0) * (cc * slat/fn * p[i] - bb/(fn - 1.0) * p[j]);
+              q[k] = cc * (slat * q[i] - clat/fn * p[i]) - bb * q[j];
             }
         }
-        aa = rr * gha[l];
-      if (m == 0)
-        {
+        aa = rr * mag_coeff[l-1];
+
+      if (m == 0){
           x = x + aa * q[k];
           z = z - aa * p[k];
           l = l + 1;
-        }
-      else
-        {
-              bb = rr * gha[l+1];
-              cc = aa * cl[m] + bb * sl[m];
+      }else{
+              bb = rr * mag_coeff[l];
+              cc = aa * cl[m-1] + bb * sl[m-1];
               x = x + cc * q[k];
               z = z - cc * p[k];
-              if (clat > 0)
-                {
-                  y = y + (aa * sl[m] - bb * cl[m]) *
-                    fm * p[k]/((fn + 1.0) * clat);
-                }
-              else
-                {
-                  y = y + (aa * sl[m] - bb * cl[m]) * q[k] * slat;
-                }
+              if (clat > 0){
+                  y = y + (aa * sl[m-1] - bb * cl[m-1]) *fm * p[k]/((fn + 1.0) * clat);
+              }else{
+                  y = y + (aa * sl[m-1] - bb * cl[m-1]) * q[k] * slat;
+              }
               l = l + 2;
-        }
+      }
       m = m + 1;
     }
+
     aa = x;
     x = x * cd + z * sd;
     z = z * cd - aa * sd;

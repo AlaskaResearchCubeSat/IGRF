@@ -43,8 +43,8 @@ while not have_header:
 
 svIdx=26
 ghIdx=svIdx-1
-gh=[0]
-sv=[0]
+gh=[]
+sv=[]
 
 for line in inf:
     line=line.split()
