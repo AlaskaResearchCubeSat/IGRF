@@ -15,19 +15,7 @@
 /*            -- accept new DGRF2005 coeffs with 0.01 nT precision          */
 /*            -- make sure all values are separated by blanks               */
 /*            -- swapped n and m: first is degree, second is order          */
-/*     - new my_isnan function improves portablility                        */
 /*     - corrected feet to km conversion factor                             */
-/*     - fixed date conversion errors for yyyy,mm,dd format                 */
-/*     - fixed lon/lat conversion errors for deg,min,sec format             */
-/*     - simplified leap year identification                                */
-/*     - changed comment: units of ddot and idot are arc-min/yr             */
-/*     - added note that this program computes the secular variation as     */
-/*            the 1-year difference, rather than the instantaneous change,  */
-/*            which can be slightly different                               */
-/*     - clarified that height is above ellipsoid, not above mean sea level */
-/*            although the difference is negligible for magnetics           */
-/*     - changed main(argv,argc) to usual definition main(argc,argv)        */
-/*     - corrected rounding of angles close to 60 minutes                   */
 /*     Thanks to all who provided bug reports and suggested fixes           */
 /*                                                                          */
 /*                                          Stefan Maus Jan-25-2010         */
@@ -210,6 +198,7 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   int i,j,k,l,m,n;
   int npq;
   double x,y,z;
+
   //calculate sin and cos of latitude
   slat = sin(flat);
   clat = cos(flat);
@@ -226,11 +215,10 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   y = 0;
   z = 0;
 
-  l = 1;
-  n = 0;
-  m = 1;
+  //calculate loop iterations
   npq = (nmax * (nmax + 3)) / 2;
-  //calculate ratio of earths radius to radius
+
+  //calculate ratio of earths radius to elevation
   ratio = earths_radius / elev;
 
   aa = sqrt(3.0);
@@ -247,51 +235,50 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   q[2] = -3.0 * clat * slat;
   q[3] = aa * (slat * slat - clat * clat);
 
-  for( k = 1; k <= npq; ++k){
-      if (n < m){
-          m = 0;
-          n = n + 1;
+  for(k=0,l=1,n=0,m=0; k+1 <= npq;k++,m++){
+      if (n <= m){
+          m = -1;
+          n+= 1;
           rr = pow(ratio,n+2);
           fn = n;
       }
-      fm = m;
-      if (k >= 5){
-          if (m == n){
+      fm = m+1;
+      if (k >= 4){
+          if (m+1 == n){
               aa = sqrt(1.0 - 0.5/fm);
-              j = k - n - 1;
-              p[k-1] = (1.0 + 1.0/fm) * aa * clat * p[j-1];
-              q[k-1] = aa * (clat * q[j-1] + slat/fm * p[j-1]);
-              sl[m-1] = sl[m-2] * cl[0] + cl[m-2] * sl[0];
-              cl[m-1] = cl[m-2] * cl[0] - sl[m-2] * sl[0];
+              j = k - n ;
+              p[k] = (1.0 + 1.0/fm) * aa * clat * p[j-1];
+              q[k] = aa * (clat * q[j-1] + slat/fm * p[j-1]);
+              sl[m] = sl[m-1] * cl[0] + cl[m-1] * sl[0];
+              cl[m] = cl[m-1] * cl[0] - sl[m-1] * sl[0];
           }else{
               aa = sqrt(fn*fn - fm*fm);
               bb = sqrt(((fn - 1.0)*(fn-1.0)) - (fm * fm))/aa;
               cc = (2.0 * fn - 1.0)/aa;
               i = k - n;
               j = k - 2 * n + 1;
-              p[k-1] = (fn + 1.0) * (cc * slat/fn * p[i-1] - bb/(fn - 1.0) * p[j-1]);
-              q[k-1] = cc * (slat * q[i-1] - clat/fn * p[i-1]) - bb * q[j-1];
+              p[k] = (fn + 1.0) * (cc * slat/fn * p[i] - bb/(fn - 1.0) * p[j]);
+              q[k] = cc * (slat * q[i] - clat/fn * p[i]) - bb * q[j];
             }
         }
         aa = rr * mag_coeff[l-1];
 
-      if (m == 0){
-          x = x + aa * q[k-1];
-          z = z - aa * p[k-1];
-          l = l + 1;
+      if (m == -1){
+          x = x + aa * q[k];
+          z = z - aa * p[k];
+          l+= 1;
       }else{
               bb = rr * mag_coeff[l];
-              cc = aa * cl[m-1] + bb * sl[m-1];
-              x = x + cc * q[k-1];
-              z = z - cc * p[k-1];
+              cc = aa * cl[m] + bb * sl[m];
+              x = x + cc * q[k];
+              z = z - cc * p[k];
               if (clat > 0){
-                  y = y + (aa * sl[m-1] - bb * cl[m-1]) *fm * p[k-1]/((fn + 1.0) * clat);
+                  y = y + (aa * sl[m] - bb * cl[m]) *fm * p[k]/((fn + 1.0) * clat);
               }else{
-                  y = y + (aa * sl[m-1] - bb * cl[m-1]) * q[k-1] * slat;
+                  y = y + (aa * sl[m] - bb * cl[m]) * q[k] * slat;
               }
-              l = l + 2;
+              l+= 2;
       }
-      m = m + 1;
     }
 
     dest->c.x=x;
