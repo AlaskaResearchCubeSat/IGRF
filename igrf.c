@@ -119,16 +119,18 @@ int extrapsh(double date){
       }else{
           k = igo * (igo + 2);
           l = svo * (svo + 2);
-          //put in rate of change for extra elements?
+          //put in change for extra elements?
           for(i=k;i<l;++i){
             mag_coeff[i] = factor * igrf_sv[i];
           }
           nmax = svo;
         }
     }
+    //apply secular variations to model
     for ( i = 0; i < k; ++i){
         mag_coeff[i] = igrf_coeffs[i] + factor * igrf_sv[i];
     }
+    //return maximum degree of model and secular variations
     return nmax;
 }
 
@@ -167,6 +169,7 @@ int extrapsh(double date){
 /*                                                                          */
 /****************************************************************************/
 
+//define buffer size for q and q
 #define PQ_BUFFSIZE         32
 
 int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
@@ -255,7 +258,6 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
             }
         }
         aa = rr * mag_coeff[l-1];
-
 
       if (m == -1){
           x = x + aa * q[kw];
