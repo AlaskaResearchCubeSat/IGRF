@@ -113,32 +113,40 @@ int extrapsh(double date){
   int   nmax;
   int   k, l;
   int   i;
+  int   igo=igrf_ord,svo=sv_ord;
   double factor;
   //# of years to extrapolate
   factor = date - igrf_date;
+  //make shure that degree is smaller then MAXDEG
+  if(igo>MAXDEG){
+      igo=MAXDEG;
+  }
+  if(svo>MAXDEG){
+      svo=MAXDEG;
+  }
   //check for equal degree
-  if (igrf_ord == sv_ord){
-      k =  igrf_ord * (igrf_ord + 2);
-      nmax = igrf_ord;
+  if (igo == svo){
+      k =  igo * (igo + 2);
+      nmax = igo;
   }else{
       //check if reference is bigger
-      if (igrf_ord > sv_ord){
-          k = sv_ord * (sv_ord + 2);
-          l = igrf_ord * (igrf_ord + 2);
+      if (igo > svo){
+          k = svo * (svo + 2);
+          l = igo * (igo + 2);
           //copy extra elements unchanged
           for ( i = k ; i < l; ++i){
               mag_coeff[i] = igrf_coeffs[i];
           }
           //maximum degree of model
-          nmax = igrf_ord;
+          nmax = igo;
       }else{
-          k = igrf_ord * (igrf_ord + 2);
-          l = sv_ord * (sv_ord + 2);
+          k = igo * (igo + 2);
+          l = svo * (svo + 2);
           //put in rate of change for extra elements?
           for(i=k;i<l;++i){
             mag_coeff[i] = factor * igrf_sv[i];
           }
-          nmax = sv_ord;
+          nmax = svo;
         }
     }
     for ( i = 0; i < k; ++i){
