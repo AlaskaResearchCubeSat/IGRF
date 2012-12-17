@@ -44,30 +44,7 @@
 #include "vector.h"
 #include "igrfCoeffs.h"
 
-#define NaN log(-1.0)
-#define FT2KM (1.0/0.0003048)
-#define PI 3.141592654
-
-#ifndef SEEK_SET
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
-#endif
-
-#define RECL 81
-
-#define MAXINBUFF RECL+14
-
-/** Max size of in buffer **/
-
-#define MAXREAD MAXINBUFF-2
-/** Max to read 2 less than total size (just to be safe) **/
-
-#define MAXMOD 30
-/** Max number of models in a file **/
-
-#define PATH MAXREAD
-/** Max path and filename length **/
+#define PI 3.14159265358979323846
 
 #define MAXDEG 13
 #define MAXCOEFF (MAXDEG*(MAXDEG+2))
