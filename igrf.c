@@ -182,6 +182,7 @@ int extrapsh(double date){
 /*                                                                          */
 /****************************************************************************/
 
+#define PQ_BUFFSIZE         32
 
 int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   const double earths_radius = 6371.2;
@@ -191,11 +192,12 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   double aa, bb, cc;
   double rr;
   double fm,fn;
-  double sl[MAXCOEFF];
-  double cl[MAXCOEFF];
-  double p[MAXDEG*(MAXDEG+3)/2];
-  double q[MAXDEG*(MAXDEG+3)/2];
+  double sl[MAXDEG];
+  double cl[MAXDEG];
+  double p[PQ_BUFFSIZE];
+  double q[PQ_BUFFSIZE];
   int i,j,k,l,m,n;
+  int kw;
   int npq;
   double x,y,z;
 
@@ -235,56 +237,62 @@ int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
   q[2] = -3.0 * clat * slat;
   q[3] = aa * (slat * slat - clat * clat);
 
-  for(k=0,l=1,n=0,m=0; k+1 <= npq;k++,m++){
+  for(k=0,l=1,n=0,m=0,rr=ratio*ratio; k < npq;k++,m++){
+      //testing get wrapped idx
+      kw=k%PQ_BUFFSIZE;
       if (n <= m){
           m = -1;
           n+= 1;
-          rr = pow(ratio,n+2);
+          //rr = pow(ratio,n+2);
+          rr*=ratio;
           fn = n;
       }
       fm = m+1;
       if (k >= 4){
+          j = k - n ;
+          //wrap j for smaller array
+          j=j%PQ_BUFFSIZE;
           if (m+1 == n){
               aa = sqrt(1.0 - 0.5/fm);
-              j = k - n ;
-              p[k] = (1.0 + 1.0/fm) * aa * clat * p[j-1];
-              q[k] = aa * (clat * q[j-1] + slat/fm * p[j-1]);
+              p[kw] = (1.0 + 1.0/fm) * aa * clat * p[j-1];
+              q[kw] = aa * (clat * q[j-1] + slat/fm * p[j-1]);
               sl[m] = sl[m-1] * cl[0] + cl[m-1] * sl[0];
               cl[m] = cl[m-1] * cl[0] - sl[m-1] * sl[0];
           }else{
               aa = sqrt(fn*fn - fm*fm);
               bb = sqrt(((fn - 1.0)*(fn-1.0)) - (fm * fm))/aa;
               cc = (2.0 * fn - 1.0)/aa;
-              i = k - n;
-              j = k - 2 * n + 1;
-              p[k] = (fn + 1.0) * (cc * slat/fn * p[i] - bb/(fn - 1.0) * p[j]);
-              q[k] = cc * (slat * q[i] - clat/fn * p[i]) - bb * q[j];
+              i = k - 2 * n + 1;
+              //wrap i for smaller array
+              i=i%PQ_BUFFSIZE;
+              p[kw] = (fn + 1.0) * (cc * slat/fn * p[j] - bb/(fn - 1.0) * p[i]);
+              q[kw] = cc * (slat * q[j] - clat/fn * p[j]) - bb * q[i];
             }
         }
         aa = rr * mag_coeff[l-1];
 
+
       if (m == -1){
-          x = x + aa * q[k];
-          z = z - aa * p[k];
+          x = x + aa * q[kw];
+          z = z - aa * p[kw];
           l+= 1;
       }else{
               bb = rr * mag_coeff[l];
               cc = aa * cl[m] + bb * sl[m];
-              x = x + cc * q[k];
-              z = z - cc * p[k];
+              x = x + cc * q[kw];
+              z = z - cc * p[kw];
               if (clat > 0){
-                  y = y + (aa * sl[m] - bb * cl[m]) *fm * p[k]/((fn + 1.0) * clat);
+                  y = y + (aa * sl[m] - bb * cl[m]) *fm * p[kw]/((fn + 1.0) * clat);
               }else{
-                  y = y + (aa * sl[m] - bb * cl[m]) * q[k] * slat;
+                  y = y + (aa * sl[m] - bb * cl[m]) * q[kw] * slat;
               }
               l+= 2;
       }
     }
-
+    //set destination values
     dest->c.x=x;
     dest->c.y=y;
     dest->c.z=z;
-    //set destination values
     //always returns zero
     return 0;
 }

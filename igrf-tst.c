@@ -12,6 +12,7 @@ int main(int argc,char **argv){
     nmax=extrapsh(2013);
     //calculate magnetic field
     shval3(64.9261111/RAD2DEG,-147.4958333/RAD2DEG,6371.2,nmax,&field);
+    //shval3(64.9261111/RAD2DEG,-147.4958333/RAD2DEG,6771.2,nmax,&field);
     //print
     printf("x = %f\ny = %f\nz = %f\n",field.c.x,field.c.y,field.c.z);
     return 0;
