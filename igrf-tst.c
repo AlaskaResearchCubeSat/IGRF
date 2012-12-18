@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include "uart.h"
 #include "terminal.h"
@@ -13,13 +14,45 @@
 
 int tst(char **argv,unsigned short argc);
 int resetCmd(char **argv,unsigned short argc);
+int shval3Cmd(char **argv,unsigned short argc);
+
 
 //table of commands with help
 CMD_SPEC cmd_tbl[]={{"help"," [command]",helpCmd},
                    {"reset","\r\n\t""Reset the msp430.",resetCmd},
                    {"tst","\r\n\t""Test IGRF conversion",tst},
+                   {"shval3","year alt lat long\r\n\t""IGRF conversion",shval3Cmd},
                    //end of list
                    {NULL,NULL,NULL}};
+
+int shval3Cmd(char **argv,unsigned short argc){
+  float year,lat,lon,alt;
+  VEC field;
+  char *end;
+  int nmax;
+  //check for proper number of arguments
+  if(argc!=4){
+    printf("Error: %s takes exactly 4 arguments\r\n",argv[0]);
+    return -1;
+  }
+  //parse arguments
+  year=strtof(argv[1],&end);
+  alt=strtof(argv[2],&end);
+  lat=strtof(argv[3],&end);
+  lon=strtof(argv[4],&end);
+  //turn on LED's
+  P7OUT|=BIT0|BIT1;
+  //extrapolate model to desired date
+  nmax=extrapsh(year);
+  P7OUT&=~BIT1;
+  P7OUT|=BIT2;
+  //calculate magnetic field
+  shval3(lat,lon,alt,nmax,&field);
+  P7OUT&=~(BIT0|BIT2);
+  //print
+  printf("%f %f %f\r\n",field.c.x,field.c.y,field.c.z);
+  return 0;
+}
 
 int tst(char **argv,unsigned short argc){
     VEC field;
@@ -31,6 +64,7 @@ int tst(char **argv,unsigned short argc){
     P7OUT|=BIT2;
     //calculate magnetic field
     shval3(64.9261111/RAD2DEG,-147.4958333/RAD2DEG,6371.2,nmax,&field);
+    //shval3(1.13317,-2.57429,6371.2,nmax,&field);
     //shval3(64.9261111/RAD2DEG,-147.4958333/RAD2DEG,6771.2,nmax,&field);
     P7OUT&=~(BIT0|BIT2);
     //print
@@ -64,9 +98,9 @@ void main(void){
   //character from port
   int c=0;
   //buffer for command
-  char cmd[30];
+  char cmd[80];
   //buffer for last command
-  char last[30];
+  char last[80];
   //command string index
   unsigned int cIdx=0;
   initCLK();
@@ -132,7 +166,7 @@ void main(void){
       //ignore tab character
       continue;
     }
-    if(!iscntrl(c)){
+    if(!iscntrl(c) && cIdx<sizeof(cmd)-2){
       //echo character
       putchar(c);
       //put character in command buffer

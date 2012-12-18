@@ -1,7 +1,7 @@
 <!DOCTYPE CrossStudio_Project_File>
 <solution Name="IGRF" target="9" version="2">
   <project Name="IGRF">
-    <configuration Name="Common" Platform="MSP430" Target="MSP430F2618" build_use_hardware_multiplier="16-Bit Multiplier" double_is_float="No" linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F2618.xml" linker_printf_fp_enabled="Yes" linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv32.xml" msp430_debug_interface="JTAG" msp430_identify_string="MSP430F2618" msp430_insn_set="MSP430X" project_directory="" project_type="Executable"/>
+    <configuration Name="Common" Platform="MSP430" Target="MSP430F2618" build_use_hardware_multiplier="16-Bit Multiplier" double_is_float="Yes" linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F2618.xml" linker_printf_fp_enabled="Yes" linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv32.xml" msp430_debug_interface="JTAG" msp430_identify_string="MSP430F2618" msp430_insn_set="MSP430X" project_directory="" project_type="Executable"/>
     <folder Name="Source Files">
       <configuration Name="Common" filter="c;h;s;asm;inc;s43"/>
       <file file_name="igrf.c"/>

@@ -72,7 +72,7 @@ int doCmd(char *cs){
   //buffers for args and arg vector
   //NOTE: this limits the maximum # of arguments
   //      and total length of all arguments
-  char args[50];
+  char args[500];
   char *argv[10];
   unsigned short argc;
   int i;

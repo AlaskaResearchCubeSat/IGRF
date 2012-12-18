@@ -48,7 +48,7 @@
 
 #define MAXDEG 13
 #define MAXCOEFF (MAXDEG*(MAXDEG+2))
-double mag_coeff[MAXCOEFF];                   //Computed coefficients
+float mag_coeff[MAXCOEFF];                   //Computed coefficients
 
 /****************************************************************************/
 /*                                                                          */
@@ -86,12 +86,12 @@ double mag_coeff[MAXCOEFF];                   //Computed coefficients
 /****************************************************************************/
 
 
-int extrapsh(double date){
+int extrapsh(float date){
   int   nmax;
   int   k, l;
   int   i;
   int   igo=igrf_ord,svo=sv_ord;
-  double factor;
+  float factor;
   //# of years to extrapolate
   factor = date - igrf_date;
   //make shure that degree is smaller then MAXDEG
@@ -172,22 +172,22 @@ int extrapsh(double date){
 //define buffer size for q and q
 #define PQ_BUFFSIZE         32
 
-int shval3(double flat,double flon,double elev,int nmax,VEC *dest){
-  const double earths_radius = 6371.2;
-  double slat;
-  double clat;
-  double ratio;
-  double aa, bb, cc;
-  double rr;
-  double fm,fn;
-  double sl[MAXDEG];
-  double cl[MAXDEG];
-  double p[PQ_BUFFSIZE];
-  double q[PQ_BUFFSIZE];
+int shval3(float flat,float flon,float elev,int nmax,VEC *dest){
+  const float earths_radius = 6371.2;
+  float slat;
+  float clat;
+  float ratio;
+  float aa, bb, cc;
+  float rr;
+  float fm,fn;
+  float sl[MAXDEG];
+  float cl[MAXDEG];
+  float p[PQ_BUFFSIZE];
+  float q[PQ_BUFFSIZE];
   int i,j,k,l,m,n;
   int kw;
   int npq;
-  double x,y,z;
+  float x,y,z;
 
   //calculate sin and cos of latitude
   slat = sin(flat);

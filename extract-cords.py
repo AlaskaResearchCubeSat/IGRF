@@ -132,11 +132,11 @@ writeVar(args.outfile,'const int','igrf_ord',args.igrf_ord);
 #write model  order
 writeVar(args.outfile,'const int','sv_ord',args.sv_ord);
 #write coefficients
-writeArray(args.outfile,'const double','igrf_coeffs',gh,args.igrf_ord*(args.igrf_ord+2))
+writeArray(args.outfile,'const float','igrf_coeffs',gh,args.igrf_ord*(args.igrf_ord+2))
 #add some new lines between
 args.outfile.write("\n\n")
 #write specular variations
-writeArray(args.outfile,'const double','igrf_sv',sv,args.sv_ord*(args.sv_ord+2))
+writeArray(args.outfile,'const float','igrf_sv',sv,args.sv_ord*(args.sv_ord+2))
 #add some lines at the end
 args.outfile.write("\n\n")
 
